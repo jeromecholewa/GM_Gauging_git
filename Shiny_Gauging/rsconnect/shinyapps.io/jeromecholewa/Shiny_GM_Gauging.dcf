@@ -1,0 +1,12 @@
+name: Shiny_GM_Gauging
+title: Shiny_GM_Gauging
+username:
+account: jeromecholewa
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 317629
+bundleId: 1308267
+url: https://jeromecholewa.shinyapps.io/Shiny_GM_Gauging/
+when: 1523196022.17083
+asMultiple: FALSE
+asStatic: FALSE
