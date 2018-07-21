@@ -223,7 +223,7 @@ gauging$rollMeanOfStdev <- rollmean(gauging$rollStd, rolling_k2, fill = 0)
 
 ######### finding local peaks 0.239
 #peakByRegionInput<- "0.35, 0.65,0.14, 0.14,  0.2,  0.14"  #
-peakByRegionInputPrim <- "0.35, 0.65,0.20, 0.14,  0.3,  0.17"  # base
+peakByRegionInputPrim <- "0.35, 0.39,0.20, 0.14,  0.3,  0.17"  # base
 # str(peakByRegionInput)
 # length(peakByRegionInput)
 
@@ -624,6 +624,9 @@ if (secondary) {
 # PLOTTING Ohms and rolling means + rolling stdev of rolling mean (to see the peaks)
 
 gauging$couleur <- gauging$pad_nb %% 4
+gauging$couleur[gauging$couleur == 0] <- 4
+# unique(gauging$couleur)
+# gauging$couleur[900:1800]
 ###### rollStDev for display only (x20  for visibility on the graph)
 displayFactor <- 40
 gauging$rollStdDisplay <- displayFactor * gauging$rollStd
@@ -649,6 +652,197 @@ for ( i in 1:(lengPbR-1) ) {
 showrollStdDev <- TRUE
 showOhms <-  TRUE
 showRollMean <- TRUE
+
+xMin <- -1
+xMax <- 55
+xMinSec <- -1
+xMaxSec <- 55
+yMin <- -5
+yMax <- 270
+yMinSec <- -5
+yMaxSec <- 270
+
+## define colors for threshold and for raw data + StDev
+couleursThreshold <- c('red', 'green', 'blue', 'orange')
+couleursOhms <- c('orange', 'blue', 'green', 'black')
+valuesColors_threshold <- vector(mode = "character",
+                                 length = length(thresholdByRegion$threshold))
+valuesColors_threshold[] <- couleursThreshold
+names(valuesColors_threshold) <- as.character(thresholdByRegion$threshold)
+
+#####################################    G G P L O T   Primary
+##### for plotly GRAPH SEE DOWN BELOW
+ggplotGauging <- function() {
+
+  g <- ggplot(gauging, aes(Liters)) +
+    theme(plot.title = element_text(hjust = 0.8,
+                                    margin = margin(t = 30, b = -50))) +
+    labs(x="Volume (liters)", y="Resistance (Ohms)",
+         title=paste0("+ Raw data (multicolor)                                    \n+ smooth line (rolling mean) (blue continuous)\n+ Rolling StdDev (x",
+                      displayFactor,
+                      " for visibility) (multicolor)"))  #+
+
+  g <-  g + coord_cartesian(ylim = c(yMin, yMax),
+                            xlim = c(xMin, xMax))   + #
+    # coord_cartesian(ylim = c(-2, 100),
+    #                 xlim = c(14, 21 ))
+    scale_x_continuous(expand=c(0,0)) +
+    scale_y_continuous(expand=c(0,0))
+
+  g <- g + theme(panel.background = element_rect(fill = 'white'),
+                 panel.grid.major = element_line(colour = "lightgrey",
+                                                 size = 0.2),
+                 axis.line = element_line(colour = "black"))
+
+  g <-  g + geom_segment(data = thresholdByRegion, show.legend=F,
+                         aes(x = volx,  xend = volxend,
+                             y = threshold * displayFactor,
+                             yend = threshold * displayFactor,
+                             colour = as.character(threshold))) +
+    scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
+     # the same length as the data   #  it seems valuesColors_All is not even necessary?
+
+
+  if (showOhms) {
+    g <-  g + geom_point( aes(y = Ohms, fill = as.character(couleur)),
+                          color = "transparent", show.legend=F,
+                          pch = 21, size = 1.5)
+    g <-  g + scale_fill_manual(values=couleursOhms)  # couleursOhms works without being a named vector
+  }
+
+  if (showRollMean) {
+    g <- g + geom_line(aes(Liters, rollMean), colour = 'blue')
+  }
+
+  if (showrollStdDev) {
+    g <-  g + geom_point(aes(y = rollMeanOfStdevDisplay, fill = as.character(couleur)),
+                         color = "transparent",
+                         show.legend=F,
+                         pch = 21, size = 0.7)
+  }
+g
+
+}
+
+ggplotGauging()
+
+############ plot 2nd graph (SECONDARY)
+
+gauging$couleurSec <- gauging$pad_nbSec %% 4
+gauging$couleurSec[gauging$couleurSec == 0] <- 4
+displayFactorSec <- 45
+gauging$rollStdDisplaySec <- displayFactorSec * gauging$rollStdSec
+gauging$rollMeanOfStdevDisplaySec <- displayFactorSec * gauging$rollMeanOfStdevSec
+#peakByRegionDisplaySec <- peakByRegionSec * displayFactorSec ##############
+
+thresholdByRegionSec <- data.frame(threshold = peakByRegionSec, index_x = 1,
+                                   index_xend = length_g, volx = 0,
+                                   volxend= max(gauging$Liters))
+
+#head(gauging)
+
+lengPbRSec <- length(peakByRegionSec)
+for ( i in 1:(lengPbRSec-1) ) {
+  thresholdByRegionSec$index_x[i+1] <- floor((length_g %/% lengPbRSec) * i)
+  thresholdByRegionSec$index_xend[i] <-  thresholdByRegionSec$index_x[i+1]
+  thresholdByRegionSec$volx[i] <- gauging$Liters[thresholdByRegionSec$index_xend[i]]
+  thresholdByRegionSec$volxend[i+1] <- thresholdByRegionSec$volx[i]
+}
+
+showrollStdDevSec <- TRUE
+showOhmsSec <-  TRUE
+showRollMeanSec <- TRUE
+
+
+ggplotGaugingSec <- function () {
+
+  gsec <- ggplot(gauging, aes(Liters)) +
+    theme(plot.title = element_text(hjust = 0.8,
+                                    margin = margin(t = 30, b = -50))) +
+    labs(x="Volume (liters)", y="Resistance (Ohms)",
+         title=paste0("+ SECONDARY\nRaw data (multicolor)                                    \n+ smooth line (rolling mean) (blue continuous)\n+ Rolling StdDev (x",
+                      displayFactorSec,
+                      " for visibility) (multicolor)"))  #+
+
+  gsec <-  gsec + coord_cartesian(ylim = c(yMinSec, yMaxSec),
+                                  xlim = c(xMinSec, xMaxSec))    + #
+    # coord_cartesian(ylim = c(-2, 100),
+    #                 xlim = c(14, 21 ))
+    scale_x_continuous(expand=c(0,0)) +
+    scale_y_continuous(expand=c(0,0))
+
+  gsec <- gsec + theme(panel.background = element_rect(fill = 'white'),
+                 panel.grid.major = element_line(colour = "lightgrey",
+                                                 size = 0.2),
+                 axis.line = element_line(colour = "black"))
+
+  gsec <-  gsec + geom_segment(data = thresholdByRegionSec, show.legend=F,
+                         aes(x = volx,  xend = volxend,
+                             y = threshold * displayFactorSec,
+                             yend = threshold * displayFactorSec,
+                             colour = as.character(threshold))) +
+    scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
+  # the same length as the data   #  it seems valuesColors_All is not even necessary?
+
+
+  if (showOhmsSec) {
+    gsec <-  gsec + geom_point( aes(y = Ohms2, fill = as.character(couleurSec)),
+                          color = "transparent", show.legend=F,
+                          pch = 21, size = 1.5)
+    gsec <-  gsec + scale_fill_manual(values=couleursOhms)  # couleursOhms works without being a named vector
+  }
+
+  if (showRollMeanSec) {
+    gsec <- gsec + geom_line(aes(Liters, rollMeanSec), colour = 'blue')
+  }
+
+  if (showrollStdDevSec) {
+    gsec <-  gsec + geom_point(aes(y = rollMeanOfStdevDisplaySec, fill = as.character(couleurSec)),
+                         color = "transparent",
+                         show.legend=F,
+                         pch = 21, size = 0.7)
+  }
+  gsec
+
+
+}
+
+if (secondary) {
+  ggplotGaugingSec()
+
+} else {
+  plot(x = 5, y = 3, main="THERE IS NO SECONDARY SENDER",
+       xlab="Liters",
+       ylab="Secondary Resistance (Ohms)", las=1)
+}
+
+
+
+
+
+
+
+
+
+
+#########################################################################
+#########################################################################
+#########################################################################
+#########################################################################
+#########################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 plotGauging <- function() {
   p <- plot_ly(gauging,x = ~Liters)

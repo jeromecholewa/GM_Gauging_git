@@ -64,6 +64,45 @@ shinyServer(function(input, output) {
       rolling_k2Sec <-as.integer(input$rollingk2Sec)
     } else rolling_k2Sec <- 10
 
+    ##### checking range input for each graph
+    if (!is.na(as.numeric(input$x_min)) && !is.na(as.numeric(input$x_max)) &&
+        as.numeric(input$x_min) < as.numeric(input$x_max)) {
+      xMin <- as.numeric(input$x_min)
+      xMax <- as.numeric(input$x_max)
+    } else {
+      xMin <- -1
+      xMax <- 55
+    }
+
+    if (!is.na(as.numeric(input$x_minSec)) && !is.na(as.numeric(input$x_maxSec)) &&
+        as.numeric(input$x_minSec) < as.numeric(input$x_maxSec)) {
+      xMinSec <- as.numeric(input$x_minSec)
+      xMaxSec <- as.numeric(input$x_maxSec)
+    } else {
+      xMinSec <- -1
+      xMaxSec <- 55
+    }
+
+    if (!is.na(as.numeric(input$y_min)) && !is.na(as.numeric(input$y_max)) &&
+        as.numeric(input$y_min) < as.numeric(input$y_max)) {
+      yMin <- as.numeric(input$y_min)
+      yMax <- as.numeric(input$y_max)
+    } else {
+      yMin <- -5
+      yMax <- 270
+    }
+
+    if (!is.na(as.numeric(input$y_minSec)) && !is.na(as.numeric(input$y_maxSec)) &&
+        as.numeric(input$y_minSec) < as.numeric(input$y_maxSec)) {
+      yMinSec <- as.numeric(input$y_minSec)
+      yMaxSec <- as.numeric(input$y_maxSec)
+    } else {
+      yMinSec <- -5
+      yMaxSec <- 270
+    }
+
+
+
     #filename <- "KOR+Attendance+Report_20170626_144515.xlsx"
     filename2 <- input$filenameInit
     ext <- tools::file_ext(filename2$name)
@@ -448,83 +487,63 @@ shinyServer(function(input, output) {
       thresholdByRegion$volxend[i+1] <- thresholdByRegion$volx[i]
     }
 
-      output$GaugingPlot1 <- renderPlotly({
+    ## define colors for threshold and for raw data + StDev
+    couleursThreshold <- c('red', 'green', 'blue', 'orange')
+    couleursOhms <- c('orange', 'blue', 'green', 'black')
+    valuesColors_threshold <- vector(mode = "character",
+                                     length = length(thresholdByRegion$threshold))
+    valuesColors_threshold[] <- couleursThreshold
+    names(valuesColors_threshold) <- as.character(thresholdByRegion$threshold)
 
-        p <- plot_ly(gauging,x = ~Liters)
+      output$GaugingPlot1 <- renderPlot({
 
-        if (input$showOhms) {
-          p <- p %>%
-            add_trace( y = ~Ohms,type = "scatter", mode ="markers",
-                       sizes = .1, color = ~couleur,
-                       name = 'Raw Resistances', hoverinfo = 'text',
-                       text = ~paste('Pad_Nb: ', pad_nb,
-                                     '</br></br> Volume: ', Liters,
-                                     '</br> Ohms: ', Ohms))
+        g <- ggplot(gauging, aes(Liters)) +
+          theme(plot.title = element_text(hjust = 0.8,
+                                          margin = margin(t = 30, b = -50))) +
+          labs(x="Volume (liters)", y="Resistance (Ohms)",
+               title=paste0("+ Raw data (multicolor)                                    \n+ smooth line (rolling mean) (blue continuous)\n+ Rolling StdDev (x",
+                            displayFactor,
+                            " for visibility) (multicolor)"))  #+
+
+        g <-  g + coord_cartesian(ylim = c(yMin, yMax),
+                                  xlim = c(xMin, xMax))   + #
+          # coord_cartesian(ylim = c(-2, 100),
+          #                 xlim = c(14, 21 ))
+          scale_x_continuous(expand=c(0,0)) +
+          scale_y_continuous(expand=c(0,0))
+
+        g <- g + theme(panel.background = element_rect(fill = 'white'),
+                       panel.grid.major = element_line(colour = "lightgrey",
+                                                       size = 0.2),
+                       axis.line = element_line(colour = "black"))
+
+        g <-  g + geom_segment(data = thresholdByRegion, show.legend=F,
+                               aes(x = volx,  xend = volxend,
+                                   y = threshold * displayFactor,
+                                   yend = threshold * displayFactor,
+                                   colour = as.character(threshold))) +
+          scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
+        # the same length as the data   #  it seems valuesColors_All is not even necessary?
+
+
+        if (showOhms) {
+          g <-  g + geom_point( aes(y = Ohms, fill = as.character(couleur)),
+                                color = "transparent", show.legend=F,
+                                pch = 21, size = 1.5)
+          g <-  g + scale_fill_manual(values=couleursOhms)  # couleursOhms works without being a named vector
         }
 
-        if (input$showRollMean) {
-          p <- p %>%
-            add_trace( y = ~rollMean,type = "scatter", mode ="lines+markers",
-                       marker = list(size = 2, opacity = 0.3,
-                                     color = "blue"),
-                       line = list(opacity = 0.3, dash = 'dot',
-                                   color = "blue"),
-                       #sizes = .1,
-                       name = 'Rolling Mean Resistances\n   = smoothened',
-                       hoverinfo = 'text',
-                       text = ~paste('Pad_Nb: ', pad_nb,
-                                     '</br></br> Volume: ', Liters,
-                                     '</br> RollMean: ', rollMean))
+        if (showRollMean) {
+          g <- g + geom_line(aes(Liters, rollMean), colour = 'blue')
         }
 
-        if (input$showrollStdDev) {
-          # p <- p %>%
-          #   add_trace( y = ~rollStdDisplay, type = "scatter", mode ="markers",
-          #             sizes = .1, color = ~couleur, name = 'Rolling StDev (x26)',
-          #             hoverinfo = 'text',
-          #             text = ~paste('Pad_Nb: ', pad_nb,
-          #                           '</br> </br> Volume: ', Liters,
-          #                           '</br> rollStdDisplay: ',
-          #                           rollStd))
-          p <- p %>%
-            add_trace( y = ~rollMeanOfStdevDisplay, type = "scatter", mode ="markers",
-                       #line = list(color = ''black),
-                       #marker = list(color = 'red'),
-                       sizes = .1, color = ~couleur,
-                       name = paste0('Rolling Mean of rolling StDev (x', displayFactor, ')'),
-                       hoverinfo = 'text',
-                       text = ~paste('Pad_Nb: ', pad_nb,
-                                     '</br> </br> Volume: ', Liters,
-                                     '</br> rollMeanOfStdevDisplay: ',
-                                     rollMeanOfStdev))
+        if (showrollStdDev) {
+          g <-  g + geom_point(aes(y = rollMeanOfStdevDisplay, fill = as.character(couleur)),
+                               color = "transparent",
+                               show.legend=F,
+                               pch = 21, size = 0.7)
         }
-
-        if (input$showOhms || input$showrollStdDev  ) {
-          # if (input$res | input$std | (secondary & (input$resSec |
-          #                                           input$stdSec) ) ) {
-          p <- p %>%
-            layout(title = paste0("Raw line and smooth line (rolling averages) &\nrolling StDev (x",
-                                  displayFactor,
-                                  " for visibility)"),
-                   xaxis = list(title = "Volume (liters)"),
-                   yaxis = list(title = "Resistance (Ohms)"),
-                   legend = list(x = 0.7, y = 0.9)
-
-            ) %>%
-            hide_colorbar()
-        }
-
-        for (i in 1:lengPbR) {   # WORKS
-          p <- p %>% add_lines(x = c(thresholdByRegion$volx[i],
-                                     thresholdByRegion$volxend[i]),
-                               y = c(thresholdByRegion$threshold[i]* displayFactor,
-                                     thresholdByRegion$threshold[i]* displayFactor),
-                               inherit = FALSE, showlegend = FALSE,
-                               hoverinfo = 'text',
-                               text = paste('Threshold: ',
-                                            thresholdByRegion$threshold[i]))
-        }
-        p
+        g
       })
 
 
@@ -532,6 +551,7 @@ shinyServer(function(input, output) {
       if (secondary) {
 
         gauging$couleurSec <- gauging$pad_nbSec %% 4
+        gauging$couleurSec[gauging$couleurSec == 0] <- 4
         ### DEFINE DISPLAY FACTOR SECONDARY(for std dev)
         if (!is.na(as.integer(input$display_factSec))) {
           displayFactorSec <- as.integer(input$display_factSec)
@@ -554,82 +574,61 @@ shinyServer(function(input, output) {
         }
 
         #### Actual plotting SECONDARY
-        output$GaugingPlotSec <- renderPlotly({
+        output$GaugingPlotSec <- renderPlot({
 
-          pSec <- plot_ly(gauging,x = ~Liters)
+          gsec <- ggplot(gauging, aes(Liters)) +
+            theme(plot.title = element_text(hjust = 0.8,
+                                            margin = margin(t = 30, b = -50))) +
+            labs(x="Volume (liters)", y="Resistance (Ohms)",
+                 title=paste0("+ SECONDARY\nRaw data (multicolor)                                    \n+ smooth line (rolling mean) (blue continuous)\n+ Rolling StdDev (x",
+                              displayFactorSec,
+                              " for visibility) (multicolor)"))  #+
 
-          if (input$showOhmsSec ) {
-            pSec <- pSec %>%
-              add_trace( y = ~Ohms2,type = "scatter", mode ="markers",
-                         sizes = .1, color = ~couleurSec,
-                         name = 'Raw Resistances Secondary', hoverinfo = 'text',
-                         text = ~paste('Pad_Nb: ', pad_nbSec,
-                                       '</br></br> Volume: ', Liters,
-                                       '</br> Ohms Secondary: ', Ohms2))
+          gsec <-  gsec + coord_cartesian(ylim = c(yMinSec, yMaxSec),
+                                          xlim = c(xMinSec, xMaxSec))    + #
+            # coord_cartesian(ylim = c(-2, 100),
+            #                 xlim = c(14, 21 ))
+            scale_x_continuous(expand=c(0,0)) +
+            scale_y_continuous(expand=c(0,0))
+
+          gsec <- gsec + theme(panel.background = element_rect(fill = 'white'),
+                               panel.grid.major = element_line(colour = "lightgrey",
+                                                               size = 0.2),
+                               axis.line = element_line(colour = "black"))
+
+          gsec <-  gsec + geom_segment(data = thresholdByRegionSec, show.legend=F,
+                                       aes(x = volx,  xend = volxend,
+                                           y = threshold * displayFactorSec,
+                                           yend = threshold * displayFactorSec,
+                                           colour = as.character(threshold))) +
+            scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
+          # the same length as the data   #  it seems valuesColors_All is not even necessary?
+
+
+          if (showOhmsSec) {
+            gsec <-  gsec + geom_point( aes(y = Ohms2, fill = as.character(couleurSec)),
+                                        color = "transparent", show.legend=F,
+                                        pch = 21, size = 1.5)
+            gsec <-  gsec + scale_fill_manual(values=couleursOhms)  # couleursOhms works without being a named vector
           }
 
-          if (input$showRollMeanSec) {
-            pSec <- pSec %>%
-              add_trace( y = ~rollMeanSec,type = "scatter", mode ="lines+markers",
-                         marker = list(size = 2, opacity = 0.3,
-                                       color = "blue"),
-                         line = list(opacity = 0.3, dash = 'dot',
-                                     color = "blue"),
-                         #sizes = .1,
-                         name = 'Rolling Mean Resistances\n   = smoothened',
-                         hoverinfo = 'text',
-                         text = ~paste('Pad_Nb: ', pad_nbSec,
-                                       '</br></br> Volume: ', Liters,
-                                       '</br> RollMean: ', rollMeanSec))
+          if (showRollMeanSec) {
+            gsec <- gsec + geom_line(aes(Liters, rollMeanSec), colour = 'blue')
           }
 
-          if (input$showrollStdDevSec) {
-            pSec <- pSec %>%
-              add_trace( y = ~rollMeanOfStdevDisplaySec, type = "scatter",
-                         mode ="markers",
-                         #line = list(color = ''black),
-                         #marker = list(color = 'red'),
-                         sizes = .1, color = ~couleurSec,
-                         name = paste0('Rolling Mean of rolling\nStDev Secondary(x',
-                                       displayFactorSec, ')'),
-                         hoverinfo = 'text',
-                         text = ~paste('Pad_Nb: ', pad_nbSec,
-                                       '</br> </br> Volume: ', Liters,
-                                       '</br> rollMeanOfStdevDisplaySecond.: ',
-                                       rollMeanOfStdevSec))
+          if (showrollStdDevSec) {
+            gsec <-  gsec + geom_point(aes(y = rollMeanOfStdevDisplaySec, fill = as.character(couleurSec)),
+                                       color = "transparent",
+                                       show.legend=F,
+                                       pch = 21, size = 0.7)
           }
-
-          pSec <- pSec %>%
-            layout(title = paste0("SECONDARY - Raw line and smooth line (rolling average) &\nrolling StDev (x",
-                                  displayFactorSec, " for visibility)"),
-                   xaxis = list(title = "Volume (liters)"),
-                   yaxis = list(title = "Resistance (Ohms)"),
-                   legend = list(x = 0.7, y = 0.9)
-
-            ) %>%
-            hide_colorbar()
-
-          for (i in 1:lengPbRSec) {   # WORKS
-            pSec <- pSec %>% add_lines(x = c(thresholdByRegionSec$volx[i],
-                                             thresholdByRegionSec$volxend[i]),
-                                       y = c(thresholdByRegionSec$threshold[i]* displayFactorSec,
-                                             thresholdByRegionSec$threshold[i]* displayFactorSec),
-                                       inherit = FALSE, showlegend = FALSE,
-                                       hoverinfo = 'text',
-                                       text = paste('Threshold: ',
-                                                    thresholdByRegionSec$threshold[i]))
-          }
-          pSec
-
+          gsec
         })
       } else {
-        output$GaugingPlotSec <- renderPlotly({
-          pSec <- plot_ly(x = 5, y = 3, type = "scatter", mode ="markers") %>%
-            layout(title = "There is NO SECONDARY Sender",
-                   xaxis = list(title = "Volume (liters)"),
-                   yaxis = list(title = "Resistance (Ohms)"),
-                   legend = list(x = 0.7, y = 0.9))
-          pSec
+        output$GaugingPlotSec <- renderPlot({
+          plot(x = 5, y = 3, main="THERE IS NO SECONDARY SENDER",
+               xlab="Liters",
+               ylab="Secondary Resistance (Ohms)", las=1)
         })
       }
 
