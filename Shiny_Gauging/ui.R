@@ -32,7 +32,7 @@ shinyUI(fluidPage(
         h3("PARAMETERS for extraction"),
         textInput("rollingk", "Enter the range between 10 & 150, to calculate the rolling mean", value = "50" ),
         textInput("rollingk2", "Enter the range between 2 & 50, to calculate the rolling mean of Std Dev", value = "10" ),
-        textInput("minpeak", "Enter list of detection peaks with commas, e.g. 0.35, 0.29,0.14, 0.14,  0.14 to detect a peak in Std Dev", value = "0.35, 0.30,0.25, 0.20,  0.14"),
+        textInput("minpeak", "Enter list of detection peaks with commas, e.g. 0.35, 0.29,0.14, 0.14,  0.14 to detect a peak in Std Dev", value = "0.35, 0.30,0.25, 0.20,  0.22"),
         h6("For example, if you enter 3 values, the range of fuel volume will be divided into 3 regions of equal length in which each threshold will be used to detect peaks"),
         br(), br(), br(),br(), br(),
         submitButton("Start Calculation"),
@@ -40,7 +40,7 @@ shinyUI(fluidPage(
         br(),br(), br(), br(),
         textInput("rollingkSec", "Enter the range between 10 & 150, to calculate the rolling mean for SECONDARY sender", value = "40" ),
         textInput("rollingk2Sec", "Enter the range between 2 & 50, to calculate the rolling mean of Std Dev for SECONDARY sender", value = "10" ),
-        textInput("minpeakSec", "SECONDARY: Enter list of detection peaks with commas, e.g. 0.35, 0.29,0.14, 0.14,  0.14 to detect a peak in Std Dev", value = "0.40, 0.25,0.20, 0.30, 0.22, 0.14")
+        textInput("minpeakSec", "SECONDARY: Enter list of detection peaks with commas, e.g. 0.35, 0.29,0.14, 0.14,  0.14 to detect a peak in Std Dev", value = "0.40, 0.25,0.20, 0.30, 0.22, 0.25")
         ),
 
     # Show a plot of the generated distribution

@@ -29,7 +29,7 @@ library(pracma)
 
 #setwd("~/GM Korea/E2XX Korea/PVP/R-transformation/9BUX Raw data of AWD_FWD_Drain_Filling/9BUX Raw data of AWD Main Drain/")  # enter correct folder for original file   ON PC
 
-setwd("~/Documents/Education/Coursera/Datascience with R/GM_gauging/9BUX Raw data of AWD_FWD_Drain_Filling/9BUX Raw data of AWD Main Filling/")  # enter correct folder for original file   ON MAC
+setwd("~/Documents/Education/Coursera/Datascience with R/GM_gauging/AWD tank raw data2Pump/")  # enter correct folder for original file   ON MAC
 
 
 rm(list = ls())
@@ -40,15 +40,15 @@ dyn_unuse <- 0  # acc to GMW 14474, must be given by GM
 useable_vol <- 50
 ##########
 
-filename <- "9BUX_AWD_TY_3_Main_Fill" #  REMOVE the '.xlsx' or '.csv" from original file name
+filename <- "9BUX_AWD_TY_4_4_Fill" #  REMOVE the '.xlsx' or '.csv" from original file name
 #filename <- "salaires_2011_2013" #  REMOVE the '.xlsx' or '.csv" from original file name
 
-gauging <- data.frame(read_excel(paste(filename, ".xlsx", sep = ""),
-                                 sheet = 1,
-                                 #skip = 1,
-                                 na = "", col_names = FALSE))
-# gauging <- read.csv(paste(filename, ".csv", sep = ""),
-#                     header = FALSE)
+# gauging <- data.frame(read_excel(paste(filename, ".xlsx", sep = ""),
+#                                  sheet = 1,
+#                                  #skip = 1,
+#                                  na = "", col_names = FALSE))
+gauging <- read.csv(paste(filename, ".csv", sep = ""),
+                    header = FALSE)
 gauging <-  as.data.frame(sapply(gauging[,1:9], as.numeric))
 # gauging_x <- data.frame(read_excel(paste(filename, ".xlsx", sep = ""),
 #                                    sheet = 1,
@@ -222,8 +222,8 @@ gauging$rollMeanOfStdev <- rollmean(gauging$rollStd, rolling_k2, fill = 0)
 # }
 
 ######### finding local peaks 0.239
-#peakByRegionInput<- "0.35, 0.65,0.14, 0.14,  0.2,  0.14"  #
-peakByRegionInputPrim <- "0.35, 0.39,0.20, 0.14,  0.3,  0.17"  # base
+#peakByRegionInput<- "0.35, 0.30,0.25, 0.20,  0.22"  #
+peakByRegionInputPrim <- "0.35, 0.30,0.25, 0.20,  0.22"  # app default : 0.35, 0.30,0.25, 0.20,  0.22
 # str(peakByRegionInput)
 # length(peakByRegionInput)
 
@@ -452,6 +452,17 @@ for (i in 1:length(pad_list_table_final$pad_nb)-1) {
     pad_list_table_final$liter_gap[i] <- abs(pad_list_table_final$Liter_Stop[i+1] - pad_list_table_final$Liter_Start[i])
 }
 
+############### Insert a pad mid point marker (padChange = 0.5 to position plot text correctly)
+pad_list_table_final$padMidPos <- round(pad_list_table_final$pad_length[1] / 2)
+for ( i in 2:lengg) {
+  pad_list_table_final$padMidPos[i] <- pad_list_table_final$padMidPos[i-1] +
+    round(pad_list_table_final$pad_length[i-1] / 2)+
+    round(pad_list_table_final$pad_length[i] / 2)
+}
+
+gauging[pad_list_table_final$padMidPos, ]$padChange <- 0.5
+
+
 
 ############################
 ###### BUILDING THE GM TABLE (for Primary level sensor)
@@ -495,7 +506,7 @@ GM_table <-GM_table[,c("Resistance Change", "Primary Level Sensor Ohms",
 #GM_table[8:15, ]
 #pad_list_table_final[8:15, ]
 
-##############
+###############
 ############### NOW CALCULATION OF SEGMENTS FOR SECONDARY SENDER
 if (secondary) {
 
@@ -519,7 +530,7 @@ if (secondary) {
                                          rolling_k2Sec, fill = 0)
 
   ######### finding local peaks
-  peakByRegionInputSec <- "0.40, 0.25,0.20, 0.30, 0.22, 0.14"
+  peakByRegionInputSec <- "0.40, 0.25,0.20, 0.30, 0.22, 0.25"  # app default : 0.40, 0.25,0.20, 0.30, 0.22, 0.25
   peakByRegionSec <- rev(as.numeric( unlist(strsplit(gsub(" ", "",
                                                            peakByRegionInputSec,
                                                            fixed = TRUE),
@@ -568,6 +579,19 @@ if (secondary) {
   for (i in 1:length(pad_list_table_finalSec$pad_nb)-1) {
     pad_list_table_finalSec$liter_gap[i] <- abs(pad_list_table_finalSec$Liter_end[i+1] - pad_list_table_finalSec$Liter_start[i])
   }
+
+  ######### Insert a pad mid point marker (padChange = 0.5 to position plot text correctly)
+  pad_list_table_finalSec$padMidPos <- round(pad_list_table_finalSec$pad_length[1] / 2)
+  for ( i in 2:lenggSec) {
+    pad_list_table_finalSec$padMidPos[i] <- pad_list_table_finalSec$padMidPos[i-1] +
+      round(pad_list_table_finalSec$pad_length[i-1] / 2)+
+      round(pad_list_table_finalSec$pad_length[i] / 2)
+  }
+
+  gauging[pad_list_table_finalSec$padMidPos, ]$padChangeSec <- 0.5
+
+
+
   ############################
   ###### BUILDING THE GM TABLE (for SECONDARY level sensor)
   GM_tableSec <- pad_list_table_finalSec[,c("pad_nb","pad_averages",
@@ -653,8 +677,8 @@ showrollStdDev <- TRUE
 showOhms <-  TRUE
 showRollMean <- TRUE
 
-xMin <- -1
-xMax <- 55
+xMin <- 41
+xMax <- 43
 xMinSec <- -1
 xMaxSec <- 55
 yMin <- -5
@@ -678,7 +702,7 @@ ggplotGauging <- function() {
     theme(plot.title = element_text(hjust = 0.8,
                                     margin = margin(t = 30, b = -50))) +
     labs(x="Volume (liters)", y="Resistance (Ohms)",
-         title=paste0("+ Raw data (multicolor)                                    \n+ smooth line (rolling mean) (blue continuous)\n+ Rolling StdDev (x",
+         title=paste0("\U25CF Raw data (multicolor)                                    \n\U2500 smooth line (rolling mean) (blue continuous)\n\U25CF Rolling StdDev (x",
                       displayFactor,
                       " for visibility) (multicolor)"))  #+
 
@@ -686,8 +710,8 @@ ggplotGauging <- function() {
                             xlim = c(xMin, xMax))   + #
     # coord_cartesian(ylim = c(-2, 100),
     #                 xlim = c(14, 21 ))
-    scale_x_continuous(expand=c(0,0)) +
-    scale_y_continuous(expand=c(0,0))
+    scale_x_continuous(expand=c(0,0), breaks = round(seq(xMin, xMax, length.out = 25), 1)) +
+    scale_y_continuous(expand=c(0,0), breaks = round(seq(yMin, yMax, length.out = 30), 1))
 
   g <- g + theme(panel.background = element_rect(fill = 'white'),
                  panel.grid.major = element_line(colour = "lightgrey",
@@ -708,6 +732,9 @@ ggplotGauging <- function() {
                           color = "transparent", show.legend=F,
                           pch = 21, size = 1.5)
     g <-  g + scale_fill_manual(values=couleursOhms)  # couleursOhms works without being a named vector
+    g <-  g + geom_text( aes(y = Ohms, label=ifelse(padChange ==0.5 & pad_nb %% 2 == 0 ,as.character(pad_nb),'')),
+                         # hjust=1.4,
+                         vjust= 1.7, size = 3)
   }
 
   if (showRollMean) {
@@ -756,11 +783,19 @@ showRollMeanSec <- TRUE
 
 ggplotGaugingSec <- function () {
 
+
+  #SHOULD  BE IMPLEMENTED
+  valuesColors_threshold <- vector(mode = "character",
+                                   length = length(thresholdByRegionSec$threshold))
+  valuesColors_threshold[] <- couleursThreshold
+  names(valuesColors_threshold) <- as.character(thresholdByRegionSec$threshold)
+
+
   gsec <- ggplot(gauging, aes(Liters)) +
     theme(plot.title = element_text(hjust = 0.8,
                                     margin = margin(t = 30, b = -50))) +
     labs(x="Volume (liters)", y="Resistance (Ohms)",
-         title=paste0("+ SECONDARY\nRaw data (multicolor)                                    \n+ smooth line (rolling mean) (blue continuous)\n+ Rolling StdDev (x",
+         title=paste0("SECONDARY\n\U25CF Raw data (multicolor)                                    \n\U2500 smooth line (rolling mean) (blue continuous)\n\U25CF Rolling StdDev (x",
                       displayFactorSec,
                       " for visibility) (multicolor)"))  #+
 
@@ -768,8 +803,10 @@ ggplotGaugingSec <- function () {
                                   xlim = c(xMinSec, xMaxSec))    + #
     # coord_cartesian(ylim = c(-2, 100),
     #                 xlim = c(14, 21 ))
-    scale_x_continuous(expand=c(0,0)) +
-    scale_y_continuous(expand=c(0,0))
+    scale_x_continuous(expand=c(0,0), breaks = round(seq(xMinSec,
+                                                         xMaxSec, length.out = 25), 1)) +
+    scale_y_continuous(expand=c(0,0), breaks = round(seq(yMinSec,
+                                                         yMaxSec, length.out = 30), 1))
 
   gsec <- gsec + theme(panel.background = element_rect(fill = 'white'),
                  panel.grid.major = element_line(colour = "lightgrey",
@@ -790,6 +827,11 @@ ggplotGaugingSec <- function () {
                           color = "transparent", show.legend=F,
                           pch = 21, size = 1.5)
     gsec <-  gsec + scale_fill_manual(values=couleursOhms)  # couleursOhms works without being a named vector
+    gsec <-  gsec + geom_text( aes(y = Ohms2,
+                                   label=ifelse(padChangeSec ==0.5 & pad_nbSec %% 2 == 0 ,
+                                                as.character(pad_nbSec),'')),
+                         # hjust=1.4,
+                         vjust= 1.7, size = 3)
   }
 
   if (showRollMeanSec) {

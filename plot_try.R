@@ -68,7 +68,7 @@ plotGauging <- function() {
 plotGauging()
 
 #####################
-######################   ggplot
+######################   G G P L O T
 #####################
 
 # showRollMean <- TRUE
@@ -77,12 +77,16 @@ plotGauging()
 # head(gauging)
 
 # unique(gauging$couleur)
+# xMin <- 10  # -1
+# xMax <- 18  # 55
 xMin <- -1
-xMax <- 55
+xMax <-  55
 xMinSec <- -1
 xMaxSec <- 55
+# yMin <- 80  # -5
+# yMax <- 150 # 270
 yMin <- -5
-yMax <- 270
+yMax <-   270
 yMinSec <- -5
 yMaxSec <- 270
 couleursThreshold <- c('red', 'green', 'blue', 'orange')
@@ -95,6 +99,17 @@ valuesColors_threshold <- vector(mode = "character", length = length(thresholdBy
 valuesColors_threshold[] <- couleursThreshold
 names(valuesColors_threshold) <- as.character(thresholdByRegion$threshold)
 
+# head(pad_list_table_final)
+pad_list_table_final$padMidPos <- round(pad_list_table_final$pad_length[1] / 2)
+for ( i in 2:lengg) {
+  pad_list_table_final$padMidPos[i] <- pad_list_table_final$padMidPos[i-1] +
+    round(pad_list_table_final$pad_length[i-1] / 2)+
+    round(pad_list_table_final$pad_length[i] / 2)
+}
+
+gauging[pad_list_table_final$padMidPos, ]$padChange <- 0.5
+
+gauging[(gauging$padChange ==1 | gauging$padChange ==0.5) & gauging$pad_nb %% 2 == 0,]
 
 ggplotGauging <- function() {
   #g <- ggplot(gauging)
@@ -104,7 +119,7 @@ ggplotGauging <- function() {
     theme(plot.title = element_text(hjust = 0.8,
                                     margin = margin(t = 30, b = -50))) +
     labs(x="Volume (liters)", y="Resistance (Ohms)",
-         title=paste0("+ Raw data (multicolor)                                    \n+ smooth line (rolling mean) (blue continuous)\n+ Rolling StdDev (x", 40," for visibility) (multicolor)"))  #+
+         title=paste0("\U25CF Raw data (multicolor)                                    \n\U2500 smooth line (rolling mean) (blue continuous)\n\U25CF Rolling StdDev (x", 40," for visibility) (multicolor)"))  #+
 
   g <-  g + coord_cartesian(ylim = c(yMin, yMax),
                             xlim = c(xMin, xMax))   + #
@@ -142,6 +157,10 @@ ggplotGauging <- function() {
                           color = "transparent", show.legend=F,
                           pch = 21, size = 1.5)
     g <-  g + scale_fill_manual(values=couleursOhms)  # couleursOhms works without being a named vector
+    g <-  g + geom_text( aes(y = Ohms, label=ifelse(padChange ==0.5 & pad_nb %% 2 == 0 ,as.character(pad_nb),'')),
+                         # hjust=1.4,
+                         vjust= 1.7, size = 3)
+
     # g <-  g + scale_fill_gradient2(midpoint= sort(unique(gauging$couleur))[3] ,low="yellow", mid = 'blue', high="black")
     # g <- g + aes( Ohms )
     # g <-  g + geom_point(aes(y = Ohms, fill = as.factor(gauging$couleur)) , # no control over the colors
@@ -172,8 +191,6 @@ ggplotGauging <- function() {
 
   }
 
-
-
   g
 }
 
@@ -183,6 +200,14 @@ ggplotGauging()
 
 
 gauging$couleur
+
+
+
+############################################################
+############################################################
+############################################################
+
+
 
 
   # p <- plot_ly(gauging,x = ~Liters)
