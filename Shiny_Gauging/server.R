@@ -485,6 +485,8 @@ shinyServer(function(input, output) {
 
     #############  Plots of raw data points and smoothened data points
     gauging$couleur <- gauging$pad_nb %% 4
+    gauging$couleur[gauging$couleur == 0] <- 4
+
     ###### rollStDev for display only (x26  for visibility on the graph)
 
     ### DEFINE DISPLAY FACTOR (for std dev)
@@ -515,7 +517,10 @@ shinyServer(function(input, output) {
     valuesColors_threshold <- vector(mode = "character",
                                      length = length(thresholdByRegion$threshold))
     valuesColors_threshold[] <- couleursThreshold
-    names(valuesColors_threshold) <- as.character(thresholdByRegion$threshold)
+    names(valuesColors_threshold) <- paste0(as.character(thresholdByRegion$index_x),
+                                            "prim")
+
+    #thresholdByRegion$valuesColors_threshold <- valuesColors_threshold
 
       output$GaugingPlot1 <- renderPlot({
 
@@ -543,7 +548,8 @@ shinyServer(function(input, output) {
                                aes(x = volx,  xend = volxend,
                                    y = threshold * displayFactor,
                                    yend = threshold * displayFactor,
-                                   colour = as.character(threshold))) +
+                                   colour = paste0(as.character(thresholdByRegion$index_x),
+                                                   "prim"))) +
           scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
         # the same length as the data   #  it seems valuesColors_All is not even necessary?
 
@@ -599,10 +605,11 @@ shinyServer(function(input, output) {
         }
 
         #SHOULD  BE IMPLEMENTED
-        valuesColors_threshold <- vector(mode = "character",
+        valuesColors_thresholdSec <- vector(mode = "character",
                                          length = length(thresholdByRegionSec$threshold))
-        valuesColors_threshold[] <- couleursThreshold
-        names(valuesColors_threshold) <- as.character(thresholdByRegionSec$threshold)
+        valuesColors_thresholdSec[] <- couleursThreshold
+        names(valuesColors_thresholdSec) <-paste0(as.character(thresholdByRegionSec$index_x),
+                                                  "Sec")
 
         #### Actual plotting SECONDARY
         output$GaugingPlotSec <- renderPlot({
@@ -633,8 +640,9 @@ shinyServer(function(input, output) {
                                        aes(x = volx,  xend = volxend,
                                            y = threshold * displayFactorSec,
                                            yend = threshold * displayFactorSec,
-                                           colour = as.character(threshold))) +
-            scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
+                                           colour = paste0(as.character(thresholdByRegionSec$index_x),
+                                                           "Sec"))) +
+            scale_color_manual(values=valuesColors_thresholdSec)  # We need a named vector with at least
           # the same length as the data   #  it seems valuesColors_All is not even necessary?
 
 

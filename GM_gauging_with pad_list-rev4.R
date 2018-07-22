@@ -40,7 +40,7 @@ dyn_unuse <- 0  # acc to GMW 14474, must be given by GM
 useable_vol <- 50
 ##########
 
-filename <- "9BUX_AWD_TY_4_4_Fill" #  REMOVE the '.xlsx' or '.csv" from original file name
+filename <- "9BUX_AWD_TY_1-1_1_Fill" #  REMOVE the '.xlsx' or '.csv" from original file name
 #filename <- "salaires_2011_2013" #  REMOVE the '.xlsx' or '.csv" from original file name
 
 # gauging <- data.frame(read_excel(paste(filename, ".xlsx", sep = ""),
@@ -223,7 +223,7 @@ gauging$rollMeanOfStdev <- rollmean(gauging$rollStd, rolling_k2, fill = 0)
 
 ######### finding local peaks 0.239
 #peakByRegionInput<- "0.35, 0.30,0.25, 0.20,  0.22"  #
-peakByRegionInputPrim <- "0.35, 0.30,0.25, 0.20,  0.22"  # app default : 0.35, 0.30,0.25, 0.20,  0.22
+peakByRegionInputPrim <- "0.35, 0.30,0.25, 0.20,  0.22"  # app default primary: 0.35, 0.30,0.25, 0.20,  0.22
 # str(peakByRegionInput)
 # length(peakByRegionInput)
 
@@ -530,7 +530,7 @@ if (secondary) {
                                          rolling_k2Sec, fill = 0)
 
   ######### finding local peaks
-  peakByRegionInputSec <- "0.40, 0.25,0.20, 0.30, 0.22, 0.25"  # app default : 0.40, 0.25,0.20, 0.30, 0.22, 0.25
+  peakByRegionInputSec <- "0.40, 0.25,0.20, 0.30, 0.22, 0.25"  # app default Sec : 0.40, 0.25,0.20, 0.30, 0.22, 0.25  # app default primary: 0.35, 0.30,0.25, 0.20,  0.22
   peakByRegionSec <- rev(as.numeric( unlist(strsplit(gsub(" ", "",
                                                            peakByRegionInputSec,
                                                            fixed = TRUE),
@@ -677,8 +677,8 @@ showrollStdDev <- TRUE
 showOhms <-  TRUE
 showRollMean <- TRUE
 
-xMin <- 41
-xMax <- 43
+xMin <- -1
+xMax <- 55
 xMinSec <- -1
 xMaxSec <- 55
 yMin <- -5
@@ -692,7 +692,8 @@ couleursOhms <- c('orange', 'blue', 'green', 'black')
 valuesColors_threshold <- vector(mode = "character",
                                  length = length(thresholdByRegion$threshold))
 valuesColors_threshold[] <- couleursThreshold
-names(valuesColors_threshold) <- as.character(thresholdByRegion$threshold)
+names(valuesColors_threshold) <- paste0(as.character(thresholdByRegion$index_x),
+                                        "prim")
 
 #####################################    G G P L O T   Primary
 ##### for plotly GRAPH SEE DOWN BELOW
@@ -722,7 +723,8 @@ ggplotGauging <- function() {
                          aes(x = volx,  xend = volxend,
                              y = threshold * displayFactor,
                              yend = threshold * displayFactor,
-                             colour = as.character(threshold))) +
+                             colour = paste0(as.character(thresholdByRegion$index_x),
+                                             "prim"))) +
     scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
      # the same length as the data   #  it seems valuesColors_All is not even necessary?
 
@@ -785,10 +787,11 @@ ggplotGaugingSec <- function () {
 
 
   #SHOULD  BE IMPLEMENTED
-  valuesColors_threshold <- vector(mode = "character",
+  valuesColors_thresholdSec <- vector(mode = "character",
                                    length = length(thresholdByRegionSec$threshold))
-  valuesColors_threshold[] <- couleursThreshold
-  names(valuesColors_threshold) <- as.character(thresholdByRegionSec$threshold)
+  valuesColors_thresholdSec[] <- couleursThreshold
+  names(valuesColors_thresholdSec) <-paste0(as.character(thresholdByRegionSec$index_x),
+                                         "Sec")
 
 
   gsec <- ggplot(gauging, aes(Liters)) +
@@ -817,8 +820,9 @@ ggplotGaugingSec <- function () {
                          aes(x = volx,  xend = volxend,
                              y = threshold * displayFactorSec,
                              yend = threshold * displayFactorSec,
-                             colour = as.character(threshold))) +
-    scale_color_manual(values=valuesColors_threshold)  # We need a named vector with at least
+                             colour = paste0(as.character(thresholdByRegionSec$index_x),
+                                             "Sec"))) +
+    scale_color_manual(values=valuesColors_thresholdSec)  # We need a named vector with at least
   # the same length as the data   #  it seems valuesColors_All is not even necessary?
 
 
