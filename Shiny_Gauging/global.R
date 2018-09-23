@@ -6,6 +6,18 @@ library(zoo)
 library(xlsx)
 library(pracma) #for findpeaks
 
+# Some global variables
+chinaHeader <- c("Height1(mm)", "Height2(mm)", "Resistance1(\xa6\xb8)",
+                 "Resistance2(\xa6\xb8)", "Current Fuel Capacity(L)",
+                 "Flow Rate(L/H)", "Deformation(mm)", "Output current(A)",
+                 "Output voltage(V)", "Test Time(min)")
+chinaHeaderXL <- c("Height1(mm)", "Height2(mm)", "Resistance1(¦¸)",
+                   "Resistance2(¦¸)", "Current Fuel Capacity(L)",
+                   "Flow Rate(L/H)", "Deformation(mm)", "Output current(A)",
+                   "Output voltage(V)", "Test Time(min)")
+
+
+
 ############################
 # The function below creates a dataframe  for each segment
 #   average value, min, max, std dev, length (number of data points)

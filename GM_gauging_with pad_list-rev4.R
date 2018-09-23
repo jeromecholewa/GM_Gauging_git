@@ -29,8 +29,7 @@ library(pracma)
 
 #setwd("~/GM Korea/E2XX Korea/PVP/R-transformation/9BUX Raw data of AWD_FWD_Drain_Filling/9BUX Raw data of AWD Main Drain/")  # enter correct folder for original file   ON PC
 
-setwd("~/Documents/Education/Coursera/Datascience with R/GM_gauging/AWD tank raw data2Pump/")  # enter correct folder for original file   ON MAC
-
+setwd("~/Documents/Education/Coursera/Datascience with R/GM_gauging/")  # enter correct folder for original file   ON MAC
 
 rm(list = ls())
 
@@ -40,16 +39,72 @@ dyn_unuse <- 0  # acc to GMW 14474, must be given by GM
 useable_vol <- 50
 ##########
 
-filename <- "9BUX_AWD_TY_1-1_1_Fill" #  REMOVE the '.xlsx' or '.csv" from original file name
-#filename <- "salaires_2011_2013" #  REMOVE the '.xlsx' or '.csv" from original file name
+filename <- "China/S_002 AWD filling" #  REMOVE the '.xlsx' or '.csv" from original file name  S_002 FWD draining for xlsx;  S_002 AWD filling for csv
+#filename <- "E2SC_DSL_56L_6_Fill_Curve" #  REMOVE the '.xlsx' or '.csv" from original file name  E2SC_DSL_56L_6_Fill_Curve
 
+### FIRST WE NEED TO CHECK THE FILE
+# so we download only a few lines ith header
+#
 # gauging <- data.frame(read_excel(paste(filename, ".xlsx", sep = ""),
-#                                  sheet = 1,
+#                                  sheet = 1, n_max = 10,
 #                                  #skip = 1,
 #                                  na = "", col_names = FALSE))
-gauging <- read.csv(paste(filename, ".csv", sep = ""),
-                    header = FALSE)
-gauging <-  as.data.frame(sapply(gauging[,1:9], as.numeric))
+
+gauging <- read.csv(paste(filename, ".csv", sep = ""), nrows = 10,
+                    header = FALSE,
+                    #encoding="chinese", # useless
+                    stringsAsFactors=FALSE)
+
+str(gauging)
+chinaHeader <- c("Height1(mm)", "Height2(mm)", "Resistance1(\xa6\xb8)",
+                 "Resistance2(\xa6\xb8)", "Current Fuel Capacity(L)",
+                 "Flow Rate(L/H)", "Deformation(mm)", "Output current(A)",
+                 "Output voltage(V)", "Test Time(min)")
+chinaHeaderXL <- c("Height1(mm)", "Height2(mm)", "Resistance1(¦¸)",
+                   "Resistance2(¦¸)", "Current Fuel Capacity(L)",
+                   "Flow Rate(L/H)", "Deformation(mm)", "Output current(A)",
+                   "Output voltage(V)", "Test Time(min)")
+
+
+if (identical(chinaHeader, as.character(gauging[1,]))) {
+  print("china")
+  gauging <- read.csv(paste(filename, ".csv", sep = ""),
+                      header = FALSE, skip = 1) # need to skip
+                              # 1st row because of encoding problem
+
+  # gauging <- data.frame(read_excel(paste(filename, ".xlsx", sep = ""),
+  #                                  sheet = 1,
+  #                                  na = "", col_names = TRUE))
+  # head(gauging)
+  # str(gauging)
+
+  names(gauging) <- chinaHeader
+
+  gauging <- gauging[, c("Test Time(min)", "Current Fuel Capacity(L)",
+                         "Height1(mm)",
+                         "Resistance1(\xa6\xb8)",
+                         "Height2(mm)",
+                         "Resistance2(\xa6\xb8)")]
+  # str(gauging)
+  colnames(gauging) <- c( "Time_s", "Liters", "mm", "Ohms", "H2",  "Ohms2" )
+} else if (dim(gauging)[2] == 9 && gauging[1,7] == 0 && gauging[1,8] == 0) {
+  print("not China")
+  gauging <- read.csv(paste(filename, ".csv", sep = ""),
+                      header = FALSE)
+  gauging <-  as.data.frame(sapply(gauging[,1:9], as.numeric))
+  colnames(gauging) <- c( "Time_s", "Liters", "mm", "H2", "Ohms",
+                          "Ohms2" , "G", "H", "I" )
+
+  # Remove the G H I columns (c(7,8,9)) by keeping the rest
+  gauging <- gauging[,c("Time_s", "Liters", "mm", "Ohms", "H2", "Ohms2")]
+
+} else   print("Wrong")
+
+##################
+
+# gauging <- read.csv(paste(filename, ".csv", sep = ""),
+#                     header = FALSE)
+# gauging <-  as.data.frame(sapply(gauging[,1:9], as.numeric))
 # gauging_x <- data.frame(read_excel(paste(filename, ".xlsx", sep = ""),
 #                                    sheet = 1,
 #                                    #skip = 1,
@@ -65,14 +120,14 @@ gauging <-  as.data.frame(sapply(gauging[,1:9], as.numeric))
 # head(gauging, 5)
 # head(gauging_x, 5)
 
-if (dim(gauging)[2] != 9 || dim(gauging)[1] <1000 || gauging[1,1] != 0.1) {
-    print("Wrong")
-    }
-colnames(gauging) <- c( "Time_s", "Liters", "mm", "H2", "Ohms",
-                        "Ohms2" , "G", "H", "I" )
+# if (dim(gauging)[2] != 9 || dim(gauging)[1] <1000 ) {
+#     print("Wrong")
+#     }
+# colnames(gauging) <- c( "Time_s", "Liters", "mm", "H2", "Ohms",
+#                         "Ohms2" , "G", "H", "I" )
 
 # Remove the G H I columns (c(7,8,9)) by keeping the rest
-gauging <- gauging[,c("Time_s", "Liters", "mm", "Ohms", "H2", "Ohms2")]
+#gauging <- gauging[,c("Time_s", "Liters", "mm", "Ohms", "H2", "Ohms2")]
 
 
 #sum(is.na(gauging$H2))

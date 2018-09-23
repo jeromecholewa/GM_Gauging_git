@@ -120,15 +120,82 @@ shinyServer(function(input, output) {
 
     if (ext == "xls" || ext == "xlsx") {
       gauging <- data.frame(read_excel(filename2$datapath,
-                                       sheet = 1,
-                                       #skip = 1,
+                                       sheet = 1, n_max = 10,
                                        na = "", col_names = FALSE))
-      gauging <- as.data.frame(sapply(gauging[,1:9], as.numeric))
-    } else {
 
-      gauging <- read.csv(filename2$datapath,
-                          header = FALSE)
-      gauging <- as.data.frame(sapply(gauging[,1:9], as.numeric))
+      if (identical(chinaHeaderXL, as.character(gauging[1,]))) {
+        gauging <- data.frame(read_excel(filename2$datapath,
+                                         sheet = 1,
+                                         na = "", col_names = TRUE))
+        names(gauging) <- chinaHeader
+
+        gauging <- gauging[, c("Test Time(min)", "Current Fuel Capacity(L)",
+                               "Height1(mm)",
+                               "Resistance1(\xa6\xb8)",
+                               "Height2(mm)",
+                               "Resistance2(\xa6\xb8)")]
+        # str(gauging)
+        colnames(gauging) <- c( "Time_s", "Liters", "mm", "Ohms", "H2",  "Ohms2" )
+        output$errorMessage <- renderText({"File from CHINA"})
+
+      } else if (dim(gauging)[2] == 9 && gauging[1,7] == 0 &&
+                 gauging[1,8] == 0) {
+
+        gauging <- data.frame(read_excel(filename2$datapath,
+                                         sheet = 1,
+                                         #skip = 1,
+                                         na = "", col_names = FALSE))
+
+        gauging <- as.data.frame(sapply(gauging[,1:9], as.numeric))
+        colnames(gauging) <- c( "Time_s", "Liters", "mm", "H2", "Ohms",
+                                "Ohms2" , "G", "H", "I" )
+        # Remove the  G H I columns (c(7,8,9)) by keeping the rest
+        gauging <- gauging[,c("Time_s", "Liters", "mm", "Ohms",
+                              "H2", "Ohms2")]
+        output$errorMessage <- renderText({"File from KOR"})
+        }
+      } else {
+
+        gauging <- read.csv(filename2$datapath, nrows = 10, header = FALSE,
+                            stringsAsFactors=FALSE)
+
+        if (identical(chinaHeader, as.character(gauging[1,]))) {
+          #print("china")
+          gauging <- read.csv(filename2$datapath, header = FALSE,
+                              skip = 1) # need to skip
+                        # 1st row because of encoding problem
+          names(gauging) <- chinaHeader
+
+          gauging <- gauging[, c("Test Time(min)", "Current Fuel Capacity(L)",
+                                 "Height1(mm)",
+                                 "Resistance1(\xa6\xb8)",
+                                 "Height2(mm)",
+                                 "Resistance2(\xa6\xb8)")]
+
+          colnames(gauging) <- c( "Time_s", "Liters", "mm", "Ohms",
+                                  "H2", "Ohms2" )
+          output$errorMessage <- renderText({"File from CHINA"})
+        } else if (dim(gauging)[2] == 9 && gauging[1,7] == 0 &&
+                   gauging[1,8] == 0) {
+          gauging <- read.csv(filename2$datapath, header = FALSE)
+          gauging <-  as.data.frame(sapply(gauging[,1:9], as.numeric))
+          colnames(gauging) <- c( "Time_s", "Liters", "mm", "H2", "Ohms",
+                                  "Ohms2" , "G", "H", "I" )
+
+          # Remove the G H I columns (c(7,8,9)) by keeping the rest
+          gauging <- gauging[,c("Time_s", "Liters", "mm", "Ohms",
+                                "H2", "Ohms2")]
+          output$errorMessage <- renderText({"File from KOR"})
+
+        } else {
+          output$errorMessage <- renderText({"Not a correct extract from KOR or CHINA gauging machine"})
+          return(NULL)
+        }
+
+
+      # gauging <- read.csv(filename2$datapath,
+      #                     header = FALSE)
+      # gauging <- as.data.frame(sapply(gauging[,1:9], as.numeric))
     }
 
     # ddim1 <- paste0("Dim1 = ", dim(gauging)[1])
@@ -138,18 +205,15 @@ shinyServer(function(input, output) {
     # output$dim2 <- renderText({ddim2})
     # output$c11 <- renderText({cc11})
 
-    if (dim(gauging)[2] != 9 || dim(gauging)[1] <1000 ) {
-      output$errorMessage <- renderText({"This isn't a correct extract from the gauging machine"})
-      return(NULL)
-      }
+    # if (dim(gauging)[2] != 9 || dim(gauging)[1] <1000 ) {
+    #   output$errorMessage <- renderText({"This isn't a correct extract from the gauging machine"})
+    #   return(NULL)
+    #   }
 
-    output$errorMessage <- renderText({" "})
+    # output$errorMessage <- renderText({" "})
 
-    colnames(gauging) <- c( "Time_s", "Liters", "mm", "H2", "Ohms",
-                            "Ohms2" , "G", "H", "I" )
 
-    # Remove the  G H I columns (c(7,8,9)) by keeping the rest
-    gauging <- gauging[,c("Time_s", "Liters", "mm", "Ohms", "H2", "Ohms2")]
+    ########### WORK ON THE DATA
 
     gauging$H2[is.na(gauging$H2)] <- 0
     secondary <- mean(gauging$H2) > 3
